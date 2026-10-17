@@ -43,7 +43,7 @@ new class extends Component
             <input
                 id="title"
                 type="text"
-                wire:model.blur="title"
+                wire:model.live.blur="title"
                 placeholder="Meeting title"
                 class="w-full border-0 bg-transparent p-0 text-3xl font-semibold text-stone-900 placeholder:text-stone-300 focus:outline-none"
             >

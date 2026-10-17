@@ -18,6 +18,13 @@ test('the page shows the meeting title, date and notes', function () {
         ->assertSee('Review the backlog.');
 });
 
+test('the title is sent to the server when the user leaves it', function () {
+    $meeting = Meeting::factory()->create();
+
+    $this->get(route('meetings.show', $meeting))
+        ->assertSee('wire:model.live.blur="title"', false);
+});
+
 test('editing the notes saves them to the meeting', function () {
     $meeting = Meeting::factory()->create();
 

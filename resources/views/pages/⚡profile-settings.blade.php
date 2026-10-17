@@ -3,7 +3,9 @@
 use App\Enums\Language;
 use App\Enums\Theme;
 use App\Models\Profile;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -48,19 +50,35 @@ new class extends Component
         ];
     }
 
-    public function save(): void
+    public function updated(string $property): void
     {
-        $validated = $this->validate();
+        try {
+            $this->validateOnly($property);
+        } catch (ValidationException $exception) {
+            $this->dispatch('toast', type: 'error', message: $exception->validator->errors()->first($property));
 
-        $this->profile->update([
-            'display_name' => $validated['displayName'],
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'theme' => $validated['theme'],
-            'language' => $validated['language'],
-        ]);
+            throw $exception;
+        }
 
-        $this->dispatch('toast', message: 'Profile settings saved.');
+        $this->profile->update([Str::snake($property) => $this->{$property}]);
+
+        $this->dispatch('toast', ...$this->savedToast($property));
+    }
+
+    /**
+     * Get the toast to show after a profile setting is saved.
+     *
+     * @return array{type: string, message: string}
+     */
+    protected function savedToast(string $property): array
+    {
+        return match ($property) {
+            'theme' => ['type' => 'info', 'message' => 'Theme changed to '.Theme::from($this->theme)->label().'.'],
+            'language' => ['type' => 'info', 'message' => 'Language changed to '.Language::from($this->language)->label().'.'],
+            'displayName' => ['type' => 'success', 'message' => 'Display name saved.'],
+            'title' => ['type' => 'success', 'message' => 'Title saved.'],
+            'description' => ['type' => 'success', 'message' => 'Description saved.'],
+        };
     }
 };
 ?>
@@ -69,18 +87,18 @@ new class extends Component
     <article class="mx-auto max-w-3xl rounded-lg bg-white px-6 py-8 shadow-sm ring-1 ring-stone-200 sm:px-12 sm:py-12">
         <header class="space-y-1">
             <h1 class="text-3xl font-semibold text-stone-900">Profile settings</h1>
-            <p class="text-sm text-stone-500">Update how you appear and how the app looks for you.</p>
+            <p class="text-sm text-stone-500">Update how you appear and how the app looks for you. Changes are saved automatically.</p>
         </header>
 
         <hr class="my-6 border-stone-200">
 
-        <form wire:submit="save" class="space-y-6">
+        <div class="space-y-6">
             <div class="space-y-1.5">
                 <label for="display-name" class="block text-sm font-medium text-stone-700">Display name</label>
                 <input
                     id="display-name"
                     type="text"
-                    wire:model="displayName"
+                    wire:model.live.blur="displayName"
                     placeholder="Alex Rivera"
                     class="w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-base text-stone-900 placeholder:text-stone-300 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
                 >
@@ -92,7 +110,7 @@ new class extends Component
                 <input
                     id="title"
                     type="text"
-                    wire:model="title"
+                    wire:model.live.blur="title"
                     placeholder="Product Designer"
                     class="w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-base text-stone-900 placeholder:text-stone-300 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
                 >
@@ -103,7 +121,7 @@ new class extends Component
                 <label for="description" class="block text-sm font-medium text-stone-700">Description</label>
                 <textarea
                     id="description"
-                    wire:model="description"
+                    wire:model.live.blur="description"
                     placeholder="Write a short description about yourself…"
                     rows="4"
                     class="field-sizing-content min-h-28 w-full resize-none rounded-md border border-stone-200 bg-white px-3 py-2 text-base leading-7 text-stone-800 placeholder:text-stone-300 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
@@ -122,7 +140,7 @@ new class extends Component
                                     type="radio"
                                     name="theme"
                                     value="{{ $themeOption->value }}"
-                                    wire:model="theme"
+                                    wire:model.live="theme"
                                     class="peer sr-only"
                                 >
                                 <span class="block rounded px-3 py-1.5 text-sm text-stone-500 peer-checked:bg-white peer-checked:text-stone-900 peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-stone-300">
@@ -138,7 +156,7 @@ new class extends Component
                     <label for="language" class="block text-sm font-medium text-stone-700">Language</label>
                     <select
                         id="language"
-                        wire:model="language"
+                        wire:model.live="language"
                         class="w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
                     >
                         @foreach (Language::cases() as $languageOption)
@@ -148,20 +166,6 @@ new class extends Component
                     @error('language') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
             </div>
-
-            <hr class="border-stone-200">
-
-            <div class="flex justify-end">
-                <button
-                    type="submit"
-                    wire:loading.attr="disabled"
-                    wire:target="save"
-                    class="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 disabled:opacity-60"
-                >
-                    <span wire:loading.remove wire:target="save">Save</span>
-                    <span wire:loading wire:target="save">Saving…</span>
-                </button>
-            </div>
-        </form>
+        </div>
     </article>
 </div>
