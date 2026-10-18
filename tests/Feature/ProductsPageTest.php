@@ -2,6 +2,7 @@
 
 use App\Enums\ProductCategory;
 use App\Models\Product;
+use App\Models\Tag;
 use Livewire\Livewire;
 
 test('the page lists products newest first', function () {
@@ -42,4 +43,14 @@ test('the list refreshes when a product is created', function () {
     $page->call('$refresh')
         ->assertSee('Fresh product')
         ->assertDontSee('No products yet.');
+});
+
+test('each product shows its tags and links to its tags page', function () {
+    $product = Product::factory()->create(['name' => 'Desk lamp']);
+    $product->tags()->attach(Tag::factory()->create(['name' => 'lighting']));
+
+    $this->get(route('products.index'))
+        ->assertSee('lighting')
+        ->assertSee(route('products.tags', $product))
+        ->assertSee('Tags<span class="sr-only"> for Desk lamp</span>', false);
 });

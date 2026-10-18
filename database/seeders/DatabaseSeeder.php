@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             MeetingSeeder::class,
             ProfileSeeder::class,
             ProductSeeder::class,
+            TagSeeder::class,
         ]);
     }
 }

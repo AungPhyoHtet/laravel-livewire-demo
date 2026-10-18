@@ -15,7 +15,7 @@ new class extends Component
     #[Computed]
     public function products(): Collection
     {
-        return Product::latest()->latest('id')->get();
+        return Product::with('tags')->latest()->latest('id')->get();
     }
 };
 ?>
@@ -49,12 +49,26 @@ new class extends Component
                                 <p class="text-sm text-stone-500">{{ $product->description }}</p>
                             @endif
 
+                            @if ($product->tags->isNotEmpty())
+                                <ul class="flex flex-wrap gap-1.5" aria-label="Tags">
+                                    @foreach ($product->tags as $tag)
+                                        <li wire:key="product-{{ $product->id }}-tag-{{ $tag->id }}" class="rounded-full border border-stone-200 px-2 py-0.5 text-xs text-stone-500">{{ $tag->name }}</li>
+                                    @endforeach
+                                </ul>
+                            @endif
+
                             @if ($product->url)
                                 <a href="{{ $product->url }}" target="_blank" rel="noopener" class="block truncate text-sm text-stone-600 underline underline-offset-2 hover:text-stone-900">{{ $product->url }}</a>
                             @endif
                         </div>
 
-                        <p class="shrink-0 font-medium text-stone-900">{{ $product->formattedPrice() }}</p>
+                        <div class="flex shrink-0 items-baseline gap-4 sm:flex-col sm:items-end sm:gap-1">
+                            <p class="font-medium text-stone-900">{{ $product->formattedPrice() }}</p>
+                            <a
+                                href="{{ route('products.tags', $product) }}"
+                                class="text-sm text-stone-500 underline underline-offset-2 hover:text-stone-900"
+                            >Tags<span class="sr-only"> for {{ $product->name }}</span></a>
+                        </div>
                     </li>
                 @endforeach
             </ul>
