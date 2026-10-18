@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             MeetingSeeder::class,
             ProfileSeeder::class,
+            ProductSeeder::class,
         ]);
     }
 }
