@@ -11,3 +11,7 @@ Route::livewire('/profiles/{profile}', 'pages::profile-settings')->name('profile
 Route::livewire('/products', 'pages::products')->name('products.index');
 
 Route::livewire('/products/{product}/tags', 'pages::product-tags')->name('products.tags');
+
+Route::livewire('/posts', 'pages::posts')->name('posts.index');
+
+Route::livewire('/posts/{post:slug}', 'pages::post-show')->name('posts.show');
