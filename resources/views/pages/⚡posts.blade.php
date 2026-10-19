@@ -19,28 +19,47 @@ new class extends Component
     #[Url(except: '')]
     public string $category = '';
 
-    public int $perPage = self::PAGE_SIZE;
+    public int $page = 1;
 
     public function updatedSearch(): void
     {
-        $this->perPage = self::PAGE_SIZE;
+        $this->showFirstPage();
     }
 
     public function updatedCategory(): void
     {
-        $this->perPage = self::PAGE_SIZE;
+        $this->showFirstPage();
     }
 
+    /**
+     * Append the next page of posts to the list island, so only the new rows are queried and sent.
+     */
     public function loadMore(): void
     {
         if ($this->hasMore()) {
-            $this->perPage += self::PAGE_SIZE;
+            $this->page++;
+
+            $this->renderIsland('posts', mode: 'append');
         }
     }
 
     public function clearFilters(): void
     {
-        $this->reset('search', 'category', 'perPage');
+        $this->reset('search', 'category');
+
+        $this->showFirstPage();
+    }
+
+    /**
+     * Start the list again from the first page.
+     *
+     * Islands are skipped when the rest of the component re-renders, so the list island is rendered explicitly.
+     */
+    protected function showFirstPage(): void
+    {
+        $this->page = 1;
+
+        $this->renderIsland('posts');
     }
 
     /**
@@ -66,7 +85,7 @@ new class extends Component
     }
 
     /**
-     * Get the loaded posts, newest first.
+     * Get the current page of posts, newest first.
      *
      * @return Collection<int, Post>
      */
@@ -76,7 +95,7 @@ new class extends Component
         return $this->filteredQuery()
             ->latest('published_at')
             ->latest('id')
-            ->limit($this->perPage)
+            ->forPage($this->page, self::PAGE_SIZE)
             ->get();
     }
 
@@ -89,11 +108,11 @@ new class extends Component
     /**
      * Determine whether more matching posts are waiting to be loaded.
      *
-     * Not computed: it depends on perPage, which loadMore changes mid-request.
+     * Not computed: it depends on page, which loadMore changes mid-request.
      */
     public function hasMore(): bool
     {
-        return $this->total > $this->perPage;
+        return $this->total > $this->page * self::PAGE_SIZE;
     }
 
     /**
@@ -177,7 +196,7 @@ new class extends Component
             class="mt-4 text-sm text-stone-500"
         >{{ $this->summary }}</p>
 
-        @if ($this->posts->isEmpty())
+        @if ($this->total === 0)
             <div class="space-y-3 py-12 text-center">
                 @if ($search !== '' || $category !== '')
                     <p class="text-sm text-stone-500">No posts match your filters.</p>
@@ -190,8 +209,11 @@ new class extends Component
                     <p class="text-sm text-stone-500">No posts yet.</p>
                 @endif
             </div>
-        @else
-            <ol class="mt-2 divide-y divide-stone-200">
+        @endif
+
+        {{-- Always rendered: an island can't sit inside a conditional. --}}
+        <ol @class(['mt-2 divide-y divide-stone-200', 'hidden' => $this->total === 0])>
+            @island(name: 'posts')
                 @foreach ($this->posts as $post)
                     <li wire:key="post-{{ $post->id }}">
                         <article class="space-y-2 py-6">
@@ -212,11 +234,13 @@ new class extends Component
                         </article>
                     </li>
                 @endforeach
-            </ol>
+            @endisland
+        </ol>
 
+        @if ($this->total > 0)
             @if ($this->hasMore())
                 <div
-                    wire:key="sentinel-{{ $perPage }}"
+                    wire:key="sentinel-{{ $page }}"
                     wire:intersect.margin.300px="loadMore"
                     class="flex justify-center border-t border-stone-200 pt-6"
                 >

@@ -42,25 +42,28 @@ The app has no posts yet. Both pages match the white-card UI (`⚡products`, `�
   - `paragraphs()` splits the body on blank lines.
   - `readingTime()` is the minutes at 200 words a minute, at least 1.
   - `getRouteKeyName()` stays the id; the route uses `{post:slug}`.
-- Factory with a `draft()` state. `PostSeeder` creates 40 published posts across the categories, spread over the past year, plus 2 drafts. It is called from `DatabaseSeeder`.
+- Factory with a `draft()` state. `PostSeeder` creates 200 published posts spread over the past year (40 hand-written across the categories, 160 from the factory), plus 2 drafts. It is called from `DatabaseSeeder`.
 
 ### 3.2 List page: `resources/views/pages/⚡posts.blade.php`
 - State:
   - `#[Url(as: 'q', except: '')] public string $search = ''`;
   - `#[Url(except: '')] public string $category = ''`;
-  - `public int $perPage = 12` (`PAGE_SIZE`).
-- `updatedSearch()` and `updatedCategory()` reset `perPage`. `loadMore()` adds `PAGE_SIZE`. `clearFilters()` resets the search, the category and `perPage`.
+  - `public int $page = 1` (pages of `PAGE_SIZE` = 12).
+- The list rows are a named island, `@island(name: 'posts')`, inside an `<ol>` that is always rendered (hidden when nothing matches), because islands can't sit inside conditionals.
+- `loadMore()` increments `page` and calls `renderIsland('posts', mode: 'append')`, so only the next 12 rows are queried and sent, and they are appended to the island.
+- `updatedSearch()`, `updatedCategory()` and `clearFilters()` reset `page` to 1 and call `renderIsland('posts')` (morph). Islands are skipped when the rest of the component re-renders, so this explicit render is what replaces the rows.
+- The rest of the component (summary, empty state, sentinel, end message) still re-renders on every request. Livewire's morph leaves the skipped island's rows untouched.
 - `#[Computed] query()` builds the filtered query:
   - published posts only;
   - search uses `LIKE ? ESCAPE '!'` on title or excerpt;
   - category uses `PostCategory::tryFrom`, so an unknown value is ignored.
-- `#[Computed] posts()` takes `perPage`, ordered by `published_at desc, id desc`. `#[Computed] total()` is the count.
-- `hasMore()` is a plain method, not computed. `loadMore()` checks it and then raises `perPage`, so a cached value would still say "more" when the render happens, and the sentinel would never disappear.
+- `#[Computed] posts()` is the current page (`forPage($page, 12)`), ordered by `published_at desc, id desc`. It is only read inside the island. `#[Computed] total()` is the count.
+- `hasMore()` (`total > page × 12`) is a plain method, not computed. `loadMore()` checks it and then raises `page`, so a cached value would still say "more" when the render happens, and the sentinel would never disappear.
 - Markup:
   - The search input uses `wire:model.live.debounce.300ms`, `type="search"`, with a label (sr-only) and a magnifier icon.
   - The category `<select>` uses `wire:model.live`.
   - The results are an `<ol>` of `<article>` rows with `wire:key`.
-- Infinite scroll: while `posts < total`, a sentinel `<div wire:intersect.margin.300px="loadMore" wire:key="sentinel-{{ $perPage }}">` holds "Load more posts" (`wire:click="loadMore"`) and the `wire:loading` text. The `wire:key` changes after every load, so the sentinel is re-created. If it is still on screen (a tall window), the new observer fires again and loads the next page.
+- Infinite scroll: while `posts < total`, a sentinel `<div wire:intersect.margin.300px="loadMore" wire:key="sentinel-{{ $page }}">` holds "Load more posts" (`wire:click="loadMore"`) and the `wire:loading` text. The `wire:key` changes after every load, so the sentinel is re-created. If it is still on screen (a tall window), the new observer fires again and loads the next page.
 
 ### 3.3 Details page: `resources/views/pages/⚡post-show.blade.php`
 - `Route::livewire('/posts/{post:slug}', 'pages::post-show')`. `mount(Post $post)` aborts with 404 unless the post is published.
@@ -73,10 +76,10 @@ The app has no posts yet. Both pages match the white-card UI (`⚡products`, `�
 - [x] T3 List page `⚡posts` + route.
 - [x] T4 `PostsPageTest`:
   - lists published posts newest first, with no drafts, and the first 12 only;
-  - `loadMore` adds 12, and the sentinel disappears at the end, which shows "You've reached the end.";
+  - `loadMore` appends only the next 12 rows to the island (checked in the `islandFragments` effect), and the sentinel disappears at the end, which shows "You've reached the end.";
   - search on title and excerpt is case-insensitive, with wildcards escaped;
   - category filter, and the combination of both;
-  - changing a filter resets `perPage`;
+  - changing a filter resets `page` and re-renders the island from the first page;
   - an unknown category is ignored;
   - URL query string;
   - count text, the empty state and `clearFilters`;

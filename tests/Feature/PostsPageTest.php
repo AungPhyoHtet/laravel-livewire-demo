@@ -3,6 +3,7 @@
 use App\Enums\PostCategory;
 use App\Models\Post;
 use Database\Seeders\PostSeeder;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
 /**
@@ -17,6 +18,14 @@ function postsNewestFirst(int $count, array $attributes = []): void
             ...$attributes,
         ]);
     }
+}
+
+/**
+ * Get the island fragments rendered by the last request, which are sent apart from the component's HTML.
+ */
+function islandFragments(Testable $page): string
+{
+    return implode('', $page->effects['islandFragments'] ?? []);
 }
 
 test('the page lists published posts newest first', function () {
@@ -59,38 +68,44 @@ test('the page shows the first 12 posts and a sentinel to load more', function (
         ->assertDontSee('You’ve reached the end.');
 });
 
-test('loading more shows the next posts until the end', function () {
+test('loading more appends only the next page to the list island until the end', function () {
     postsNewestFirst(25);
 
     $page = Livewire::test('pages::posts')
         ->call('loadMore')
-        ->assertSet('perPage', 24)
-        ->assertSee('Post 24')
-        ->assertDontSee('Post 25')
-        ->call('loadMore')
-        ->assertSet('perPage', 36)
-        ->assertSee('Post 25')
+        ->assertSet('page', 2);
+
+    expect(islandFragments($page))
+        ->toContain('name=posts', 'mode=append', 'Post 13', 'Post 24')
+        ->not->toContain('Post 12', 'Post 25');
+
+    $page->call('loadMore')
+        ->assertSet('page', 3)
         ->assertDontSeeHtml('wire:intersect')
         ->assertSee('You’ve reached the end.');
 
-    expect($page->get('posts'))->toHaveCount(25);
+    expect(islandFragments($page))
+        ->toContain('mode=append', 'Post 25')
+        ->not->toContain('Post 24');
 });
 
 test('loading more at the end does nothing', function () {
     postsNewestFirst(3);
 
-    Livewire::test('pages::posts')
+    $page = Livewire::test('pages::posts')
         ->call('loadMore')
-        ->assertSet('perPage', 12);
+        ->assertSet('page', 1);
+
+    expect(islandFragments($page))->toBe('');
 });
 
 test('the sentinel gets a new key after each load so it is observed again', function () {
     postsNewestFirst(30);
 
     Livewire::test('pages::posts')
-        ->assertSeeHtml('wire:key="sentinel-12"')
+        ->assertSeeHtml('wire:key="sentinel-1"')
         ->call('loadMore')
-        ->assertSeeHtml('wire:key="sentinel-24"');
+        ->assertSeeHtml('wire:key="sentinel-2"');
 });
 
 test('searching filters posts by title or excerpt, ignoring case', function () {
@@ -152,14 +167,18 @@ test('an unknown category is ignored', function () {
     expect($page->get('posts'))->toHaveCount(2);
 });
 
-test('changing a filter starts again from the first page', function (string $property, string $value) {
+test('changing a filter re-renders the list island from the first page', function (string $property, string $value) {
     postsNewestFirst(30, ['category' => PostCategory::Design, 'excerpt' => 'Design notes.']);
 
-    Livewire::test('pages::posts')
+    $page = Livewire::test('pages::posts')
         ->call('loadMore')
-        ->assertSet('perPage', 24)
+        ->assertSet('page', 2)
         ->set($property, $value)
-        ->assertSet('perPage', 12);
+        ->assertSet('page', 1);
+
+    expect(islandFragments($page))
+        ->toContain('name=posts', 'mode=morph', 'Post 1', 'Post 12')
+        ->not->toContain('Post 13');
 })->with([
     'search' => ['search', 'design'],
     'category' => ['category', 'design'],
@@ -207,8 +226,8 @@ test('nothing matching shows an empty state that clears the filters', function (
         ->call('clearFilters')
         ->assertSet('search', '')
         ->assertSet('category', '')
-        ->assertSee('Post 1')
-        ->assertDontSee('No posts match your filters.');
+        ->assertDontSee('No posts match your filters.')
+        ->tap(fn (Testable $page) => expect(islandFragments($page))->toContain('mode=morph', 'Post 1', 'Post 2'));
 });
 
 test('the page says when there are no posts at all', function () {
@@ -217,11 +236,11 @@ test('the page says when there are no posts at all', function () {
         ->assertDontSee('Clear filters');
 });
 
-test('the seeder creates 40 published posts and 2 drafts', function () {
+test('the seeder creates 200 published posts and 2 drafts', function () {
     $this->seed(PostSeeder::class);
 
-    expect(Post::published()->count())->toBe(40)
-        ->and(Post::count())->toBe(42)
+    expect(Post::published()->count())->toBe(200)
+        ->and(Post::count())->toBe(202)
         ->and(Post::firstWhere('slug', 'shipping-livewire-4-islands-to-production'))->not->toBeNull();
 });
 

@@ -68,7 +68,12 @@ class PostSeeder extends Seeder
     ];
 
     /**
-     * Seed 40 published posts spread over the past year, plus 2 drafts.
+     * How many generated posts to add after the hand-written ones.
+     */
+    protected const GENERATED_COUNT = 160;
+
+    /**
+     * Seed 200 published posts spread over the past year (40 hand-written, 160 generated), plus 2 drafts.
      */
     public function run(): void
     {
@@ -88,6 +93,8 @@ class PostSeeder extends Seeder
                 $index++;
             }
         }
+
+        Post::factory()->count(self::GENERATED_COUNT)->create();
 
         Post::factory()->draft()->count(2)->create();
     }
