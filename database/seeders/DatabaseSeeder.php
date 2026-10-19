@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             TagSeeder::class,
             PostSeeder::class,
+            NotificationSeeder::class,
         ]);
     }
 }
