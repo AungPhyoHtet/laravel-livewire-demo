@@ -131,9 +131,14 @@ new class extends Component
 
 <div class="min-h-screen bg-stone-100 px-4 py-10 sm:py-16">
     <article class="mx-auto max-w-3xl rounded-lg bg-white px-6 py-8 shadow-sm ring-1 ring-stone-200 sm:px-12 sm:py-12">
-        <header class="space-y-1">
-            <h1 class="text-3xl font-semibold text-stone-900">Posts</h1>
-            <p class="text-sm text-stone-500">Notes from the team on engineering, design and how we work.</p>
+        <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="space-y-1">
+                <h1 class="text-3xl font-semibold text-stone-900">Posts</h1>
+                <p class="text-sm text-stone-500">Notes from the team on engineering, design and how we work.</p>
+            </div>
+
+            {{-- A fixed key: rendering the list island shifts the generated child keys, which would remount the open search. --}}
+            <livewire:post-search key="post-search" />
         </header>
 
         <hr class="my-6 border-stone-200">

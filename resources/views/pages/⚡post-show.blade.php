@@ -43,10 +43,14 @@ new class extends Component
 <div class="min-h-screen bg-stone-100 px-4 py-10 sm:py-16">
     <article class="mx-auto max-w-3xl rounded-lg bg-white px-6 py-8 shadow-sm ring-1 ring-stone-200 sm:px-12 sm:py-12">
         <header class="space-y-3">
-            <a
-                href="{{ route('posts.index') }}"
-                class="text-sm text-stone-500 hover:text-stone-900"
-            >&larr; All posts</a>
+            <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <a
+                    href="{{ route('posts.index') }}"
+                    class="text-sm text-stone-500 hover:text-stone-900"
+                >&larr; All posts</a>
+
+                <livewire:post-search />
+            </div>
             <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-500">
                 <span class="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-600">{{ $post->category->label() }}</span>
                 <time datetime="{{ $post->published_at->toDateString() }}">{{ $post->published_at->format('F j, Y') }}</time>

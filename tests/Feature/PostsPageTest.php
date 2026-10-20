@@ -195,6 +195,17 @@ test('the filters are read from the url', function () {
         ->assertSee('1 post matching “design”');
 });
 
+test('the quick search keeps its component when the list island renders', function () {
+    postsNewestFirst(13);
+
+    $page = Livewire::test('pages::posts');
+    $searchComponentId = $page->snapshot['memo']['children']['post-search'][1];
+
+    $page->call('loadMore')->set('search', 'post');
+
+    expect($page->snapshot['memo']['children']['post-search'][1])->toBe($searchComponentId);
+});
+
 test('the filters are kept in the url as q and category', function () {
     $this->get(route('posts.index'))
         ->assertSee('&quot;search&quot;:{&quot;as&quot;:&quot;q&quot;', false)
