@@ -17,3 +17,5 @@ Route::livewire('/posts', 'pages::posts')->name('posts.index');
 Route::livewire('/posts/{post:slug}', 'pages::post-show')->name('posts.show');
 
 Route::livewire('/users/{user}/dashboard', 'pages::dashboard')->name('users.dashboard');
+
+Route::livewire('/board', 'pages::board')->name('board');

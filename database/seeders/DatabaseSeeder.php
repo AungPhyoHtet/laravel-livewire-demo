@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             TagSeeder::class,
             PostSeeder::class,
             NotificationSeeder::class,
+            TaskSeeder::class,
         ]);
     }
 }
